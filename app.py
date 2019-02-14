@@ -8,6 +8,7 @@ The server is in port 6000.
 
 from flask import Flask, jsonify, request
 from sqlite3 import connect
+from connections import getCursor
 
 
 app = Flask(__name__)
@@ -20,13 +21,13 @@ except:
     print('Some error in the connection.')
 
 
-def getCursor(con):
-    """
-    Return the cursor of the connection
-    passed for parameter.
+# def getCursor(con):
+    # """
+    # Return the cursor of the connection
+    # passed for parameter.
 
-    """
-    return con.cursor()
+    # """
+    # return con.cursor()
 
 
 @app.route('/books')
@@ -44,6 +45,7 @@ def getBooks():
     books_list = cursor.fecthall()
 
     cursor.commit()
+    cursor.close()
 
     print(books_list)
 
@@ -62,6 +64,7 @@ def getBook(book_name):
     book = cursor.fecthall()
 
     cursor.commit()
+    cursor.close()
 
     print(book)
 
@@ -75,6 +78,11 @@ def getBook(book_name):
 
 @app.route('/books', methods=['POST'])
 def addBook():
+    """
+    This is the route for add
+    a new book at the database.
+
+    """
     cursor = getCursor(con)
 
     # creating the book for save in the database
@@ -90,6 +98,7 @@ def addBook():
     new_books_list = cursor.fecthall()
 
     cursor.commit()
+    cursor.close()
 
     return jsonify({
         "message": "Book Added Sucessfully",
@@ -100,6 +109,13 @@ def addBook():
 
 @app.route('/books/<string:id>', methods=['DELETE'])
 def deleteBook(id):
+    """
+    This is the route for delete
+    a book of the database.
+
+    Recive the id of the book for delete.
+
+    """
     cursor = getCursor(con)
 
     cursor.execute(f"DELETE * FROM books WHERE(id = {id})")
@@ -109,11 +125,45 @@ def deleteBook(id):
     new_books_list = cursor.fecthall()
 
     cursor.commit()
+    cursor.close()
 
     return jsonify({
         "message": f"Book with id {id} Deleted Sucessfully",
         "new_books_list": new_books_list
         })
+
+@app.route('/books/<string:id>', methods=['PUT'])
+def updateBook(id):
+    """
+    This is the route for update
+    a book of the database.
+
+    Recive the id of the book for update.
+
+    """
+
+    cursor = getCursor(con)
+    cursor.execute(f"SELECT * FROM BOOKS WHERE id = id")
+
+    old_product = cursor.fecthall()
+
+    cursor.execute(f"UPDATE books SET name = {request.json['name']} WHERE id = {id}")
+    cursor.execute(f"UPDATE books SET price = {request.json['price']} WHERE id = {id}")
+
+    cursor.execute(f"SELECT * FROM books WHERE(id = {id})")
+    new_product = cursor.fecthall()
+
+
+    cursor.commit()
+    cursor.close()
+
+    return jsonify({
+        "message": f"Product with id {id} Updated Sucessfully",
+        "old_product": old_product,
+        "new_product": new_product
+
+        })
+
 
 
 if __name__ == '__main__':
