@@ -44,7 +44,7 @@ def getBooks():
 
     books_list = cursor.fecthall()
 
-    cursor.commit()
+    con.commit()
     cursor.close()
 
     print(books_list)
@@ -57,23 +57,32 @@ def getBooks():
 
 @app.route('/book/<string:book_name>')
 def getBook(book_name):
+    """
+    This route is for get a book for your name.
+
+    Recive the book name por parameter.
+
+    """
 
     cursor = genCursor(con)
     cursor.execute(f"SELECT name FROM books WHERE(name = {book_name})")
-
     book = cursor.fecthall()
 
-    cursor.commit()
+    con.commit()
     cursor.close()
 
-    print(book)
+    # creating book object for return it
+    book = {
+            'id': book[0],
+            'name': book[1],
+            'price': book[2]
+            }
 
     return jsonif({
         "message": "Book Found",
         "book": book
 
         })
-
 
 
 @app.route('/books', methods=['POST'])
@@ -87,6 +96,7 @@ def addBook():
 
     # creating the book for save in the database
     book = {
+            'id': request.json['id']
             'name': request.json['name'],
             'price': request.json['price']
             }
@@ -94,10 +104,10 @@ def addBook():
 
     # esto linea quiza falla porque no le estamos pasando el id
     # ya vere que hago para solucionarlo
-    cursor.execute(f"INSERT INTO books VALUES({book['name']}, {book['price'])}")
+    cursor.execute(f"INSERT INTO books VALUES({book['id']}, {book['name']}, {book['price'])}")
     new_books_list = cursor.fecthall()
 
-    cursor.commit()
+    con.commit()
     cursor.close()
 
     return jsonify({
@@ -124,7 +134,7 @@ def deleteBook(id):
     cursor.execute("SELECT * FROM books")
     new_books_list = cursor.fecthall()
 
-    cursor.commit()
+    con.commit()
     cursor.close()
 
     return jsonify({
@@ -143,18 +153,20 @@ def updateBook(id):
     """
 
     cursor = getCursor(con)
-    cursor.execute(f"SELECT * FROM BOOKS WHERE id = id")
+    cursor.execute(f"SELECT * FROM BOOKS WHERE(id = {id}"))
 
+    # getting the old product
     old_product = cursor.fecthall()
 
     cursor.execute(f"UPDATE books SET name = {request.json['name']} WHERE id = {id}")
     cursor.execute(f"UPDATE books SET price = {request.json['price']} WHERE id = {id}")
 
     cursor.execute(f"SELECT * FROM books WHERE(id = {id})")
+    # getting the new product
     new_product = cursor.fecthall()
 
 
-    cursor.commit()
+    con.commit()
     cursor.close()
 
     return jsonify({
