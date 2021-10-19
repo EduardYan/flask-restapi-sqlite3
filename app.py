@@ -8,11 +8,26 @@ The server is in port 6000.
 
 from flask import Flask, jsonify, request
 from sqlite3 import connect
-from connections import getCursor, db
+from flask_sqlalchemy import SQLAlchemy
+from connections import db
 
 app = Flask(__name__)
+# deffiniting where is the database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db
+
+db = SQLAlchemy(app)
+
+class Book(db.Model):
+    """
+    This is a class for create a data model
+    for save in the database.
+    """
+    id = db.Column(db.Integer, primary_key = True)
+    name = db.Column(db.String(50))
+    price = db.Column(db.Integer)
 
 
+@app.route('/')
 @app.route('/books')
 def getBooks():
     """
@@ -22,26 +37,15 @@ def getBooks():
     Return the list of books, in the database.
 
     """
-    con = connect(db)
-    cursor = getCursor(con)
-    cursor.execute("SELECT * FROM books")
+    books = Book.query.all()
+    print(books)
 
-    # getting the books in tuples of the databas
-    books = cursor.fetchall()
+    books_list = [{'id': b.id, 'name': b.name, 'price': b.price} for b in books]
 
-    con.commit()
-    cursor.close()
-
-    # list of books for return
-    books_list = [{'id': book[0], 'name': book[1], 'price': book[2]} for book in books]
-
-    if (len(books) > 0):
-        return jsonify({
-            "message": "Books List's ",
-            "books": books_list
-            })
-
-    return jsonify({"message": "Not Books Found.", "books": books_list})
+    return jsonify({
+        "message": "Books's list",
+        "books": books_list
+    })
 
 
 @app.route('/books/<string:id>')
@@ -52,32 +56,21 @@ def getBook(id):
     Recive the book name por parameter.
 
     """
-    con = connect(db)
-    cursor = getCursor(con)
 
-    cursor.execute(f"SELECT * FROM books WHERE(id = {int(id)})")
-    bookFound = cursor.fetchall()
+    bookFound = Book.query.filter_by(id = int(id)).first()
 
-    con.commit()
-    cursor.close()
+    if (bookFound == None):
+        return jsonify({"message": "Product not Found"})
 
-    if (len(bookFound) > 0):
-        # creating book object for return it
-        book = {
-                'id': bookFound[0][0],
-                'name': bookFound[0][1],
-                'price': bookFound[0][2]
-                }
+    book = {'id': bookFound.id, 'name': bookFound.name, 'price': bookFound.price}
 
-        return jsonify({
-            "message": "Book Found",
-            "book": book
-
-            })
-
-    return jsonify({"message": "Book not Found"})
+    return jsonify({
+        "message": "Book Found",
+        "book": book
+    })
 
 
+@app.route('/', methods=['POST'])
 @app.route('/books', methods=['POST'])
 def addBook():
     """
@@ -85,35 +78,47 @@ def addBook():
     a new book at the database.
 
     """
+    # controlling the execpt in case not are json data, if not form data
+    try:
+        book = Book(name = request.json['name'], price = int(request.json['price']))
 
-    con = connect(db)
-    cursor = getCursor(con)
+    except TypeError:
+        # getting the book data, from request.form
+        book = Book(name = request.form['name'], price = int(request.form['price']))
 
-    # creating the book for save in the database
-    book = {
-            'id': int(request.json['id']),
-            'name': request.json['name'],
-            'price': request.json['price']
-            }
+        # adding the book in the database
+        db.session.add(book)
 
+        # consulting again all values
+        newBooks = Book.query.all()
 
-    # esto linea quiza falla porque no le estamos pasando el id
-    cursor.execute("INSERT INTO books VALUES({}, {}, {})".format(book['id'], book['name'], book['price']))
-    cursor.execute("SELECT * FROM books")
-    # getting the new list of books for return it
-    new_books = cursor.fecthall()
+        db.session.commit()
 
-    con.commit()
-    cursor.close()
+        books = [{'id': b.id, 'name': b.name, 'price': b.price} for b in newBooks]
 
+        return jsonify({
+            "message": "Product Added Sucessfully",
+            "newBook": {'id': book.id, 'name': book.name, 'price': book.price},
+            "newBooks": books
 
-    # getting the new list but in objects
-    new_books_list = [{'id': new[0], 'name': new[1], 'price': new[2]} for new in new_books]
+        })
 
-    return jsonify({
-        "message": "Book Added Sucessfully",
-        "bookAdded": book,
-        "newBooks": new_books_list
+    else:
+        # adding the book in the database
+        db.session.add(book)
+
+        # consulting again all values
+        newBooks = Book.query.all()
+
+        db.session.commit()
+
+        books = [{'id': b.id, 'name': b.name, 'price': b.price} for b in newBooks]
+
+        return jsonify({
+            "message": "Product Added Sucessfully",
+            "newBook": {'id': book.id, 'name': book.name, 'price': book.price},
+            "newBooks": books
+
         })
 
 
@@ -126,22 +131,23 @@ def deleteBook(id):
     Recive the id of the book for delete.
 
     """
-    con = connect(db)
-    cursor = con.cursor(con)
 
-    cursor.execute(f"DELETE FROM books WHERE(id = {id})")
+    # validating if the book not in the database
+    if (Book.query.filter_by(id = int(id)).first() == None):
+        return jsonify({"message": "Book not Found"})
 
-    cursor.execute("SELECT * FROM books")
-    books_list = cursor.fecthall()
+    # deleting the book
+    Book.query.filter_by(id = int(id)).delete()
 
-    con.commit()
-    cursor.close()
+    books_news = Book.query.all()
+    new_books_list = [{'id': b.id, 'name': b.name, 'price': b.price} for b in books_news]
 
-    new_books_list = [{'id': new[0], 'name': new[1], 'price': new[2]} for new in books_list]
+    db.session.commit()
+
 
     return jsonify({
         "message": f"Book with id {id} Deleted Sucessfully",
-        "new_books_list": new_books_list
+        "newBookList": new_books_list
         })
 
 
@@ -154,33 +160,28 @@ def updateBook(id):
     Recive the id of the book for update.
 
     """
-    con = connect(db)
-    cursor = getCursor(con)
+    # getting the book for update
+    book = Book.query.filter_by(id = int(id)).first()
 
-    cursor.execute(f"SELECT * FROM BOOKS WHERE(id = {id})")
+    # validating if the book is in the database
+    if not book == None:
+        # getting the book old
+        book_old = {'id': book.id, 'name': book.name, 'price': book.price}
 
-    # getting the old product
-    old_product = cursor.fetchhall()
+        # changing the values in the database
+        book.name = request.form['name']
+        book.price = request.form['price']
 
-    cursor.execute(f"UPDATE books SET name = {request.json['name']} WHERE id = {id}")
-    cursor.execute(f"UPDATE books SET price = {request.json['price']} WHERE id = {id}")
+        db.session.commit()
 
-    cursor.execute(f"SELECT * FROM books WHERE(id = {id})")
-    # getting the new product
-    new_product = cursor.fetchall()
-
-
-    con.commit()
-    cursor.close()
-
-    return jsonify({
-        "message": f"Product with id {id} Updated Sucessfully",
-        "old_product": {'id': old_product[0][0], 'name': old_product[0][1], 'price': old_product[0][2]},
-        "new_product": {'id': new_product[0][0], 'name': new_product[0][1], 'price': new_product[0][2]}
-
+        return jsonify({
+            "message": "Product Update Sucessfully",
+            "productOld": book_old,
+            "productUpdated": {'id': book.id, 'name': book.name, 'price': book.price}
         })
 
+    return jsonify({"message": "Product not Found"})
 
 
 if __name__ == '__main__':
-    app.run(port = 6000, debug = True)
+    app.run(port = 3000, debug = True)
