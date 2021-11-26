@@ -1,4 +1,6 @@
-"""This is a file for do some querys at database."""
+"""
+This is a file for do some querys at database for test
+"""
 
 from sqlite3 import connect
 

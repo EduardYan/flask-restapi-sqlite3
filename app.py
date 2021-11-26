@@ -7,7 +7,6 @@ The server is in port 6000.
 """
 
 from flask import Flask, jsonify, request
-from sqlite3 import connect
 from flask_sqlalchemy import SQLAlchemy
 from connections import db
 
@@ -16,6 +15,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db
 
 db = SQLAlchemy(app)
+
 
 class Book(db.Model):
     """
@@ -38,7 +38,6 @@ def getBooks():
 
     """
     books = Book.query.all()
-    print(books)
 
     books_list = [{'id': b.id, 'name': b.name, 'price': b.price} for b in books]
 
@@ -80,11 +79,11 @@ def addBook():
     """
     # controlling the execpt in case not are json data, if not form data
     try:
-        book = Book(name = request.json['name'], price = int(request.json['price']))
+        book = Book(name = request.json['name'], price = float(request.json['price']))
 
     except TypeError:
         # getting the book data, from request.form
-        book = Book(name = request.form['name'], price = int(request.form['price']))
+        book = Book(name = request.form['name'], price = float(request.form['price']))
 
         # adding the book in the database
         db.session.add(book)
