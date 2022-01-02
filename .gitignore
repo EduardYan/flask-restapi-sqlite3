@@ -1,0 +1,5 @@
+# ignores
+.env
+__pycache__
+Pipfile
+Pipfile.lock
