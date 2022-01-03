@@ -10,6 +10,14 @@ __Install dependecies with requirements file:__
 ```bash
 $ pip3 install -r requirements.txt
 ```
+# Enviroment Variables
+
+__Create this enviroment variables for the database and run the restapi:__
+
+```bash
+SQLITE_PATH=
+```
+
 
 # Run.
 
