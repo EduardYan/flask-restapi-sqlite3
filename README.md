@@ -27,6 +27,8 @@ $ python3 index.py
 
 # Routes.
 
+__The server is running in port 3000.__
+
 * GET / or /books
 * GET /books/1
 * POST /books
