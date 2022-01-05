@@ -39,7 +39,7 @@ python3 index.py
 
 # Routes.
 
-__The server is running in port 3000. The data for add books are name= and price=__
+__The server is running in port 3000. The keys for add books in POST are name= and price=__
 
 * GET / or /books
 * GET /books/1
