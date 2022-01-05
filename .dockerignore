@@ -1,0 +1,6 @@
+# ignores
+__pycache__
+.git
+*.md
+Pipfile
+Pipfile.lock
