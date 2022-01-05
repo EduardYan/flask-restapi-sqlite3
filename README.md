@@ -5,7 +5,7 @@ __This is a restapi made with python and flask, using as sqlite as database.__
 # Docker installation.
 
 ```bash
-docker build -d -p 3000:3000 eduarddan/houses-app
+docker run -d -p 3000:3000 eduarddan/houses-app
 ```
 
 # Manual Installation.
